@@ -13,25 +13,26 @@ env:
 
 jobs:
   build:
+
     runs-on: windows-latest
 
     steps:
-    # Checkout the repo
+    # Checkout the repo vv
     - uses: actions/checkout@v2
-
+    
     # Setup .NET Core SDK
-    - name: Set up .NET 
+    - name: Setup .NET core
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}        
-    
-    # Run dotnet build and publish
-    - name: Build with dotnet
+        dotnet-version: ${{ env.DOTNET_VERSION }} 
+     
+    # Run dotnet build and publish 
+    - name: dotnet build and publish
       run: |
           dotnet restore
           dotnet build --configuration Release
           dotnet publish -c Release -o '${{ env.DOTNET_ROOT }}/myapp' 
-
+    
     # Edit and publish the code coverage results 
     - name: Edit and Publish Code coverage results
       run: |
@@ -50,15 +51,15 @@ jobs:
       uses: coverallsapp/github-action@master
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: ./AzureEventHubs.UnitTests/TestResults/coverage.info    
-
+        path-to-lcov: ./AzureEventHubs.UnitTests/TestResults/coverage.info            
+    
     # Upload artifacts for deployment job
     - name: Upload artifact for deployment job
       uses: actions/upload-artifact@v2
       with:
         name: .net-app
         path: ${{env.DOTNET_ROOT}}/myapp
-
+        
   deploy:
     runs-on: windows-latest
     needs: build
@@ -71,22 +72,22 @@ jobs:
       uses: actions/download-artifact@v2
       with:
         name: .net-app
-
+        
     # Deploy to Azure Web apps
     - name : Azure Login
       uses: azure/login@v1
       with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}    
-
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        
     - name: Deploy to Azure Web App
       id: deploy-to-webapp
       uses: azure/webapps-deploy@v2
       with:
         app-name: ${{env.AZURE_WEBAPP_NAME}}
         slot-name: 'production'
-        #publish-profile: ${{ secrets.AzureAppService_PublishProfile_bb7bb4eab9164baabcf1b665005dc146 }}
-        package: .
-
+        #publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        package: .   
+         
     - name: logout
       run: |
-          az logout    
+          az logout
