@@ -1,0 +1,73 @@
+name: Build and deploy JWT Token Generator to Azure Web App.
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  AZURE_WEBAPP_NAME: apmm-AzureEventHubsProducer    # set this to your application's name
+  AZURE_WEBAPP_PACKAGE_PATH: '.'      # set this to the path to your web app project, defaults to the repository root
+  DOTNET_VERSION: '3.1.x'  
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    # Checkout the repo
+    - uses: actions/checkout@v2
+
+    # Setup .NET Core SDK
+    - name: Set up .NET 
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}        
+    
+    # Run dotnet build
+    - name: Build with dotnet
+      run: dotnet build --configuration Release
+
+    # Run dotnet publish 
+    - name: dotnet publish
+      run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
+
+    # Upload artifacts for deployment job
+    - name: Upload artifact for deployment job
+      uses: actions/upload-artifact@v2
+      with:
+        name: .net-app
+        path: ${{env.DOTNET_ROOT}}/myapp
+
+  deploy:
+    runs-on: windows-latest
+    needs: build
+    environment:
+      name: 'production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+    steps:
+    - name: Download artifact from build job
+      uses: actions/download-artifact@v2
+      with:
+        name: .net-app
+
+    # Deploy to Azure Web apps
+    - name : Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}    
+
+    - name: Deploy to Azure Web App
+      id: deploy-to-webapp
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{env.AZURE_WEBAPP_NAME}}
+        slot-name: 'production'
+        #publish-profile: ${{ secrets.AzureAppService_PublishProfile_bb7bb4eab9164baabcf1b665005dc146 }}
+        package: .
+
+    - name: logout
+      run: |
+          az logout    
