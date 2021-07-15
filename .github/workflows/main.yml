@@ -1,4 +1,4 @@
-name: Build and deploy JWT Token Generator to Azure Web App.
+name: Build and deploy.
 
 on:
   push:
