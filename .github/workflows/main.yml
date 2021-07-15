@@ -33,6 +33,26 @@ jobs:
     - name: dotnet publish
       run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
 
+    # Edit and publish the code coverage results 
+    - name: Edit and Publish Code coverage results
+      run: |
+        cd ./AzureEventHubs.UnitTests/
+        dotnet test /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov        
+   
+    # Upload artifacts for code covergae result
+    - name: Upload artifact for coverage result
+      uses: actions/upload-artifact@v2
+      with:
+        name: coverage
+        path: ./AzureEventHubs.UnitTests/TestResults/coverage.info     
+    
+    # Publish coverage reports to coveralls.io
+    - name: Publish coverage report to coveralls.io
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        path-to-lcov: ./AzureEventHubs.UnitTests/TestResults/coverage.info    
+
     # Upload artifacts for deployment job
     - name: Upload artifact for deployment job
       uses: actions/upload-artifact@v2
