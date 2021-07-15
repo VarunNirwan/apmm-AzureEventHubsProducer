@@ -27,7 +27,9 @@ jobs:
     
     # Run dotnet build
     - name: Build with dotnet
-      run: dotnet build --configuration Release
+      run: |
+          dotnet restore
+          dotnet build --configuration Release
 
     # Run dotnet publish 
     - name: dotnet publish
