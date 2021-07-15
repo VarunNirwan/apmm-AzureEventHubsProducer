@@ -13,33 +13,53 @@ env:
 
 jobs:
   build:
+
     runs-on: windows-latest
 
     steps:
-    # Checkout the repo
+    # Checkout the repo vv
     - uses: actions/checkout@v2
-
+    
     # Setup .NET Core SDK
-    - name: Set up .NET 
+    - name: Setup .NET core
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}        
+        dotnet-version: ${{ env.DOTNET_VERSION }} 
+     
+    # Run dotnet build and publish 
+    - name: dotnet build and publish
+      run: |
+          dotnet restore
+          dotnet build --configuration Release
+          dotnet publish -c Release -o '${{ env.DOTNET_ROOT }}/myapp' 
     
-    # Run dotnet build
-    - name: Build with dotnet
-      run: dotnet build --configuration Release
-
-    # Run dotnet publish 
-    - name: dotnet publish
-      run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
-
+    # Edit and publish the code coverage results 
+    - name: Edit and Publish Code coverage results
+      run: |
+        cd ./AzureEventHubs.UnitTests/
+        dotnet test /p:CollectCoverage=true /p:CoverletOutput=TestResults/ /p:CoverletOutputFormat=lcov        
+   
+    # Upload artifacts for code covergae result
+    - name: Upload artifact for coverage result
+      uses: actions/upload-artifact@v2
+      with:
+        name: coverage
+        path: ./AzureEventHubs.UnitTests/TestResults/coverage.info     
+    
+    # Publish coverage reports to coveralls.io
+    - name: Publish coverage report to coveralls.io
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        path-to-lcov: ./AzureEventHubs.UnitTests/TestResults/coverage.info            
+    
     # Upload artifacts for deployment job
     - name: Upload artifact for deployment job
       uses: actions/upload-artifact@v2
       with:
         name: .net-app
         path: ${{env.DOTNET_ROOT}}/myapp
-
+        
   deploy:
     runs-on: windows-latest
     needs: build
@@ -52,22 +72,22 @@ jobs:
       uses: actions/download-artifact@v2
       with:
         name: .net-app
-
+        
     # Deploy to Azure Web apps
     - name : Azure Login
       uses: azure/login@v1
       with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}    
-
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        
     - name: Deploy to Azure Web App
       id: deploy-to-webapp
       uses: azure/webapps-deploy@v2
       with:
         app-name: ${{env.AZURE_WEBAPP_NAME}}
         slot-name: 'production'
-        #publish-profile: ${{ secrets.AzureAppService_PublishProfile_bb7bb4eab9164baabcf1b665005dc146 }}
-        package: .
-
+        #publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        package: .   
+         
     - name: logout
       run: |
-          az logout    
+          az logout
