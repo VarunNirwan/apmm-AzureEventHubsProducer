@@ -25,15 +25,12 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}        
     
-    # Run dotnet build
+    # Run dotnet build and publish
     - name: Build with dotnet
       run: |
           dotnet restore
           dotnet build --configuration Release
-
-    # Run dotnet publish 
-    - name: dotnet publish
-      run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
+          dotnet publish -c Release -o '${{ env.DOTNET_ROOT }}/myapp' 
 
     # Edit and publish the code coverage results 
     - name: Edit and Publish Code coverage results
